@@ -1,0 +1,3 @@
+dependencies:
+    - regex-tdfa
+    - utf8-string
