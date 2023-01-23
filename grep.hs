@@ -1,10 +1,29 @@
+-- https://stackoverflow.com/questions/3232074/what-is-the-best-way-to-convert-string-to-bytestring
+
+import Control.Monad (forM)
 import Data.ByteString qualified as B
-import Data.ByteString.UTF8 qualified as BLU -- https://stackoverflow.com/questions/3232074/what-is-the-best-way-to-convert-string-to-bytestring
+import Data.ByteString.UTF8 qualified as BLU
 import Data.List (isInfixOf)
 import Data.Maybe (catMaybes)
+import System.Directory (doesDirectoryExist, listDirectory) -- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html
 import Text.Regex.TDFA
 
 data FileTree = File {name :: String, contents :: BLU.ByteString} | Directory {name :: String, children :: [FileTree]} deriving (Show)
+
+isDirectory :: FilePath -> IO Bool
+isDirectory = doesDirectoryExist
+
+getFileContents :: FilePath -> IO String
+getFileContents path = undefined -- https://stackoverflow.com/questions/7867723/haskell-file-reading
+
+-- Example way to test if files are directories
+areDirs :: FilePath -> IO [Bool]
+areDirs path = do
+  files <- listDirectory path
+  mapM isDirectory files -- TODO: convert to one-liner. https://hackage.haskell.org/package/base-4.17.0.0/docs/Control-Monad.html#v:liftM
+
+walkFiles :: FilePath -> FileTree
+walkFiles path = undefined
 
 grep :: Regex -> FileTree -> [String]
 grep expr fs = catMaybes $ inner [] fs
