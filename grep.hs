@@ -1,6 +1,6 @@
 -- https://stackoverflow.com/questions/3232074/what-is-the-best-way-to-convert-string-to-bytestring
 
-import Control.Monad (forM)
+import Control.Monad (forM, liftM2)
 import Data.ByteString qualified as B
 import Data.ByteString.UTF8 qualified as BLU
 import Data.List (isInfixOf)
@@ -13,17 +13,22 @@ data FileTree = File {name :: String, contents :: BLU.ByteString} | Directory {n
 isDirectory :: FilePath -> IO Bool
 isDirectory = doesDirectoryExist
 
-getFileContents :: FilePath -> IO String
+getFileContents :: FilePath -> IO BLU.ByteString
 getFileContents path = undefined -- https://stackoverflow.com/questions/7867723/haskell-file-reading
 
 -- Example way to test if files are directories
 areDirs :: FilePath -> IO [Bool]
-areDirs path = do
-  files <- listDirectory path
-  mapM isDirectory files -- TODO: convert to one-liner. https://hackage.haskell.org/package/base-4.17.0.0/docs/Control-Monad.html#v:liftM
+areDirs path = listDirectory path >>= traverse isDirectory
 
-walkFiles :: FilePath -> FileTree
-walkFiles path = undefined
+walkFiles :: FilePath -> IO FileTree
+walkFiles path = forM withIsDir toFileTree
+  where
+    files = listDirectory path
+    withIsDir = liftM2 zip files (files >>= traverse isDirectory)
+    toFileTree :: (FilePath, Bool) -> FileTree
+    toFileTree (name, isDir)
+      | isDir = Directory name (walkFiles name)
+      | otherwise = File name (getFileContents name)
 
 grep :: Regex -> FileTree -> [String]
 grep expr fs = catMaybes $ inner [] fs
