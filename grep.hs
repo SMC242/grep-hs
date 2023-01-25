@@ -1,6 +1,4 @@
--- https://stackoverflow.com/questions/3232074/what-is-the-best-way-to-convert-string-to-bytestring
-
-import Control.Monad (forM, liftM, liftM2)
+import Control.Monad (forM, liftM, liftM2, mapM)
 -- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html
 
 import Data.Array ((!))
@@ -42,24 +40,21 @@ withIsDir path = liftM2 zip files (files >>= traverse isDirectory)
   where
     files = listDirectory path
 
+{-
+TODO: qualifiy subdirs.
+Something like f"{parent}/{child}""
+See: https://stackoverflow.com/questions/1264797/string-interpolation-in-haskell
+-}
 toFileTree :: (FilePath, Bool) -> IO FileTree
 toFileTree file = case file of
   (p, True) -> do
-    tree <- walkFiles p >>= sequence
+    tree <- walkFiles p
     pure $ Directory p tree
   (p, False) -> pure $ File p
 
-walkFiles :: FilePath -> IO [IO FileTree]
-walkFiles path = map toFileTree <$> withIsDir path
-
-{-
-This works:
-files <- withIsDir "."
-trees <- sequence $ map toFileTree files
-
-This should work:
-trees = withIsDir "test" >>= sequence . map toFileTree
--}
+-- walkFiles :: FilePath -> IO [IO FileTree]
+walkFiles :: FilePath -> IO [FileTree]
+walkFiles path = withIsDir path >>= mapM toFileTree
 
 -- NOTE: Using options: extended regex, case sensitive, multiline
 toRegex :: String -> Regex
