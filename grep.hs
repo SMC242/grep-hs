@@ -37,6 +37,30 @@ getFileContents = readFile
 areDirs :: FilePath -> IO [Bool]
 areDirs path = listDirectory path >>= traverse isDirectory
 
+withIsDir :: FilePath -> IO [(FilePath, Bool)]
+withIsDir path = liftM2 zip files (files >>= traverse isDirectory)
+  where
+    files = listDirectory path
+
+toFileTree :: (FilePath, Bool) -> IO FileTree
+toFileTree file = case file of
+  (p, True) -> do
+    tree <- walkFiles p >>= sequence
+    pure $ Directory p tree
+  (p, False) -> pure $ File p
+
+walkFiles :: FilePath -> IO [IO FileTree]
+walkFiles path = map toFileTree <$> withIsDir path
+
+{-
+This works:
+files <- withIsDir "."
+trees <- sequence $ map toFileTree files
+
+This should work:
+trees = withIsDir "test" >>= sequence . map toFileTree
+-}
+
 -- NOTE: Using options: extended regex, case sensitive, multiline
 toRegex :: String -> Regex
 toRegex = makeRegex
