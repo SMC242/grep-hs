@@ -1,6 +1,6 @@
 module Main where
 
-import FileTree (FileTree)
+import FileTree (FileTree, prettyTree, readDirectory)
 import Match (Match, toRegex)
 import Text.Regex.TDFA (Regex)
 
@@ -20,4 +20,5 @@ grep = undefined
 main :: IO ()
 main = do
   expr <- getLine
-  print $ "This is a grep clone written in Haskell" -- grep (toRegex expr)
+  s <- prettyTree <$> readDirectory "../test"
+  putStr s

@@ -1,4 +1,4 @@
-module FileTree (FileTree, readDirectory) where
+module FileTree (FileTree, prettyTree, readDirectory) where
 
 -- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html
 
