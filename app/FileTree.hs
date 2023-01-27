@@ -22,11 +22,11 @@ areDirs :: FilePath -> IO [Bool]
 areDirs path = listDirectory path >>= traverse isDirectory
 
 withIsDir :: FilePath -> IO [(FilePath, Bool)]
-withIsDir path = liftM2 zip files (files >>= traverse isDirectory)
+withIsDir path = liftM2 zip files (files >>= traverse isDirectory . map (subdir path))
   where
     files = listDirectory path
 
-subdir :: String -> String -> String
+subdir :: FilePath -> FilePath -> FilePath
 subdir = printf "%s/%s"
 
 prettyTree :: FileTree -> String
@@ -39,11 +39,6 @@ prettyTree t = concat $ prettyTree' 0 [] t
       File name -> prettyPath depth name : acc
       Directory name children -> prettyPath depth name : concatMap (prettyTree' (depth + 1) acc) children
 
-{-
-TODO: qualifiy subdirs.
-Something like f"{parent}/{child}""
-See: https://stackoverflow.com/questions/1264797/string-interpolation-in-haskell
--}
 -- Use readDirectory instead
 walkFiles :: FilePath -> IO [FileTree]
 walkFiles path = withIsDir path >>= mapM toFileTree
