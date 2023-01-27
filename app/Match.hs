@@ -1,3 +1,5 @@
+module Match (matchTree) where
+
 import Control.Monad (forM, liftM, liftM2, mapM)
 -- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html
 
