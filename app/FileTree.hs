@@ -1,11 +1,13 @@
 module FileTree (FileTree, readDirectory) where
 
+-- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html
+
+import Control.Monad (forM, liftM, liftM2, mapM)
+import qualified Data.Text as T
 import Data.Text.IO (readFile)
-import System.Directory (doesDirectoryExist, listDirectory)  -- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html
+import System.Directory (doesDirectoryExist, listDirectory)
 import Text.Printf (printf)
 import Prelude hiding (readFile)
-import Data.Text qualified as T
-import Control.Monad (forM, liftM, liftM2, mapM)
 
 data FileTree = File {name :: FilePath} | Directory {name :: String, children :: [FileTree]} deriving (Show)
 

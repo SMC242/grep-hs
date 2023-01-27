@@ -1,7 +1,9 @@
-module Match (matchTree) where
+module Match (matchTree, Match, toRegex) where
 
 import Data.Array ((!))
 import Data.Maybe (catMaybes)
+import qualified Data.Text as T
+import FileTree (FileTree)
 import Text.Regex.TDFA
 
 type Match = (T.Text, MatchOffset)
@@ -17,6 +19,9 @@ fileMatches :: Regex -> T.Text -> Maybe [Match]
 fileMatches expr fileContents = case matchAllText expr fileContents of
   [] -> Nothing
   matches -> Just (toMatch matches)
+
+matchTree :: Regex -> FileTree -> [String]
+matchTree expr tree = undefined
 
 -- matchTree :: Regex -> FileTree -> [String]
 -- matchTree expr fs = catMaybes $ inner [] fs
