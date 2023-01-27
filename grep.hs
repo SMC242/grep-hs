@@ -8,6 +8,7 @@ import Data.Maybe (catMaybes)
 import Data.Text qualified as T
 import Data.Text.IO (readFile)
 import System.Directory (doesDirectoryExist, listDirectory)
+import Text.Printf (printf)
 import Text.Regex.TDFA
 import Prelude hiding (readFile)
 
@@ -40,21 +41,38 @@ withIsDir path = liftM2 zip files (files >>= traverse isDirectory)
   where
     files = listDirectory path
 
+subdir :: String -> String -> String
+subdir = printf "%s/%s"
+
+prettyTree :: FileTree -> String
+prettyTree t = concat $ prettyTree' 0 [] t
+  where
+    tabs = concat . flip replicate "\t"
+    prettyPath depth = printf "%s| %s\n" (tabs depth)
+    prettyTree' :: Int -> [String] -> FileTree -> [String]
+    prettyTree' depth acc tree = case tree of
+      File name -> prettyPath depth name : acc
+      Directory name children -> prettyPath depth name : concatMap (prettyTree' (depth + 1) acc) children
+
 {-
 TODO: qualifiy subdirs.
 Something like f"{parent}/{child}""
 See: https://stackoverflow.com/questions/1264797/string-interpolation-in-haskell
 -}
-toFileTree :: (FilePath, Bool) -> IO FileTree
-toFileTree file = case file of
-  (p, True) -> do
-    tree <- walkFiles p
-    pure $ Directory p tree
-  (p, False) -> pure $ File p
-
--- walkFiles :: FilePath -> IO [IO FileTree]
+-- Use readDirectory instead
 walkFiles :: FilePath -> IO [FileTree]
 walkFiles path = withIsDir path >>= mapM toFileTree
+  where
+    toFileTree :: (FilePath, Bool) -> IO FileTree
+    toFileTree file = case file of
+      (p, True) -> do
+        tree <- walkFiles (subdir path p)
+        pure $ Directory p tree
+      (p, False) -> pure $ File p
+
+-- Use this function for getting FileTrees
+readDirectory :: FilePath -> IO FileTree
+readDirectory path = Directory path <$> walkFiles path
 
 -- NOTE: Using options: extended regex, case sensitive, multiline
 toRegex :: String -> Regex
