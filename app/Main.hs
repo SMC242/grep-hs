@@ -20,5 +20,4 @@ grep = undefined
 main :: IO ()
 main = do
   expr <- getLine
-  s <- prettyTree <$> readDirectory "../test"
-  putStr s
+  readDirectory "../test" >>= putStr . prettyTree
