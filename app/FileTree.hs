@@ -17,10 +17,6 @@ isDirectory = doesDirectoryExist
 getFileContents :: FilePath -> IO T.Text
 getFileContents = readFile
 
--- Example way to test if files are directories
-areDirs :: FilePath -> IO [Bool]
-areDirs path = listDirectory path >>= traverse isDirectory
-
 withIsDir :: FilePath -> IO [(FilePath, Bool)]
 withIsDir path = liftM2 zip files (files >>= traverse isDirectory . map (subdir path))
   where
