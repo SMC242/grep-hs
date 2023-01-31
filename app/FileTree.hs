@@ -1,4 +1,4 @@
-module FileTree (FileTree, prettyTree, readDirectory, flattenWith, flattenPaths, contentTree, getFileContents) where
+module FileTree (FileTree (..), prettyTree, readDirectory, flattenWith, flattenPaths, contentTree, getFileContents) where
 
 -- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html
 
@@ -71,5 +71,5 @@ flattenPaths f = flattenWith f (\p _ -> f p)
 const2 :: a -> b -> c -> a
 const2 = const . const
 
-contentTree :: FileTree -> IO [T.Text]
-contentTree = sequence . catMaybes . flattenWith (Just . getFileContents) (const2 Nothing)
+contentTree :: FileTree -> IO [(FilePath, T.Text)]
+contentTree = mapM sequence . catMaybes . flattenWith (\p -> Just (p, getFileContents p)) (const2 Nothing)
