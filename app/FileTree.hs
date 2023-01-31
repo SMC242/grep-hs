@@ -1,8 +1,9 @@
-module FileTree (FileTree, prettyTree, readDirectory) where
+module FileTree (FileTree, prettyTree, readDirectory, flattenWith, flattenPaths, contentTree, getFileContents) where
 
 -- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html
 
 import Control.Monad (forM, liftM, liftM2, mapM)
+import Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import Data.Text.IO (readFile)
 import System.Directory (doesDirectoryExist, listDirectory)
@@ -18,12 +19,19 @@ getFileContents :: FilePath -> IO T.Text
 getFileContents = readFile
 
 withIsDir :: FilePath -> IO [(FilePath, Bool)]
-withIsDir path = liftM2 zip files (files >>= traverse isDirectory . map (subdir path))
+withIsDir path = liftM2 zip files (files >>= traverse (isDirectory . subdir path))
   where
     files = listDirectory path
 
 subdir :: FilePath -> FilePath -> FilePath
 subdir = printf "%s/%s"
+
+subTree :: FileTree -> FileTree -> FileTree
+subTree parent child = case child of
+  File path -> File newPath
+  Directory path children -> Directory newPath children
+  where
+    newPath = subdir (name parent) (name child)
 
 prettyTree :: FileTree -> String
 prettyTree t = concat $ prettyTree' 0 [] t
@@ -50,15 +58,18 @@ walkFiles path = withIsDir path >>= mapM toFileTree
 readDirectory :: FilePath -> IO FileTree
 readDirectory path = Directory path <$> walkFiles path
 
--- walkFiles :: FilePath -> IO [FileTree]
--- walkFiles path = forM withIsDir toFileTree
---   where
---     files = listDirectory path
---     withIsDir = liftM2 zip files (files >>= traverse isDirectory)
---     toFileTree :: (FilePath, Bool) -> IO FileTree
---     toFileTree (name, isDir) = do
---       subTree <- walkFiles name
---       contents <- getFileContents name
---       if isDir
---         then fmap Directory name subTree
---         else fmap File name contents
+flattenWith :: (FilePath -> a) -> (FilePath -> [FileTree] -> a) -> FileTree -> [a]
+flattenWith whenFile whenDir = inner []
+  where
+    inner acc tree = case tree of
+      File path -> whenFile path : acc
+      Directory path children -> whenDir path children : concatMap (inner acc . subTree tree) children
+
+flattenPaths :: (FilePath -> a) -> FileTree -> [a]
+flattenPaths f = flattenWith f (\p _ -> f p)
+
+const2 :: a -> b -> c -> a
+const2 = const . const
+
+contentTree :: FileTree -> IO [T.Text]
+contentTree = sequence . catMaybes . flattenWith (Just . getFileContents) (const2 Nothing)
