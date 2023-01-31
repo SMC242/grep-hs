@@ -12,6 +12,7 @@ data FileMatch = FileMatch
   { matchPath :: FilePath,
     matchList :: [RegexMatch]
   }
+  deriving (Show)
 
 type RegexMatch = (T.Text, MatchOffset, MatchLength)
 
@@ -32,6 +33,7 @@ matchTree expr tree = do
   contentTree tree >>= mapM (pure . second (matches expr)) <&> map (uncurry FileMatch) . filterMaybeTuple
   where
     filterMaybeTuple :: [(a, Maybe b)] -> [(a, b)]
+    filterMaybeTuple [] = []
     filterMaybeTuple (x : xs) =
       let rs = filterMaybeTuple xs
        in case x of
