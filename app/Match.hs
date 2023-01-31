@@ -6,25 +6,29 @@ import qualified Data.Text as T
 import FileTree (FileTree, contentTree, flattenWith)
 import Text.Regex.TDFA
 
-type Match = (T.Text, MatchOffset, MatchLength)
+data FileMatch = Match
+  { matchPath :: FilePath,
+    matchContents :: T.Text,
+    matchOffset :: MatchOffset,
+    matchLength :: MatchLength
+  }
+
+type RegexMatch = (T.Text, MatchOffset, MatchLength)
 
 -- NOTE: Using options: extended regex, case sensitive, multiline
 toRegex :: String -> Regex
 toRegex = makeRegex
 
-toMatch :: [MatchText T.Text] -> [Match]
-toMatch = map ((\(text, (offset, length)) -> (text, offset, length)) . (! 0))
+flattenMatch :: [MatchText T.Text] -> [RegexMatch]
+flattenMatch = map ((\(text, (offset, length)) -> (text, offset, length)) . (! 0))
 
-fileMatches :: Regex -> T.Text -> Maybe [Match]
+fileMatches :: Regex -> T.Text -> Maybe [RegexMatch]
 fileMatches expr fileContents = case matchAllText expr fileContents of
   [] -> Nothing
-  matches -> Just (toMatch matches)
+  matches -> Just (flattenMatch matches)
 
-matchTree :: Regex -> FileTree -> IO [Match]
-matchTree expr tree = do
-  let fileContents = contentTree tree
-
-  return undefined
+matchTree :: Regex -> FileTree -> [FileMatch]
+matchTree expr tree = undefined
 
 -- matchTree :: Regex -> FileTree -> [String]
 -- matchTree expr fs = catMaybes $ inner [] fs
