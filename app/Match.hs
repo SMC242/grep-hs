@@ -1,16 +1,16 @@
-module Match (matchTree, Match, toRegex, fileMatches) where
+module Match (matchTree, FileMatch (..), RegexMatch (..), toRegex, matches) where
 
 import Data.Array (elems, (!))
-import Data.Maybe (catMaybes)
+import Data.Bifunctor (second)
+import Data.Functor ((<&>))
+import Data.Maybe
 import qualified Data.Text as T
 import FileTree (FileTree, contentTree, flattenWith)
 import Text.Regex.TDFA
 
-data FileMatch = Match
+data FileMatch = FileMatch
   { matchPath :: FilePath,
-    matchContents :: T.Text,
-    matchOffset :: MatchOffset,
-    matchLength :: MatchLength
+    matchList :: [RegexMatch]
   }
 
 type RegexMatch = (T.Text, MatchOffset, MatchLength)
@@ -22,23 +22,18 @@ toRegex = makeRegex
 flattenMatch :: [MatchText T.Text] -> [RegexMatch]
 flattenMatch = map ((\(text, (offset, length)) -> (text, offset, length)) . (! 0))
 
-fileMatches :: Regex -> T.Text -> Maybe [RegexMatch]
-fileMatches expr fileContents = case matchAllText expr fileContents of
+matches :: Regex -> T.Text -> Maybe [RegexMatch]
+matches expr fileContents = case matchAllText expr fileContents of
   [] -> Nothing
   matches -> Just (flattenMatch matches)
 
-matchTree :: Regex -> FileTree -> [FileMatch]
-matchTree expr tree = undefined
-
--- matchTree :: Regex -> FileTree -> [String]
--- matchTree expr fs = catMaybes $ inner [] fs
---   where
---     inner :: [Maybe String] -> FileTree -> IO [Maybe String]
---     inner acc f = case f of
---       File name -> do
---         contents <- readFile name
---         pure . (: acc) $
---           if matchTest expr contents
---             then Just name
---             else Nothing
---       Directory name children -> pure $ concatMap (inner acc) children ++ acc
+matchTree :: Regex -> FileTree -> IO [FileMatch]
+matchTree expr tree = do
+  contentTree tree >>= mapM (pure . second (matches expr)) <&> map (uncurry FileMatch) . filterMaybeTuple
+  where
+    filterMaybeTuple :: [(a, Maybe b)] -> [(a, b)]
+    filterMaybeTuple (x : xs) =
+      let rs = filterMaybeTuple xs
+       in case x of
+            (r1, Just r2) -> (r1, r2) : rs
+            (_, Nothing) -> rs
