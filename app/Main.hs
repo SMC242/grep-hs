@@ -1,8 +1,10 @@
 module Main where
 
-import FileTree (FileTree, prettyTree, readDirectory)
-import Match (Match, toRegex)
-import Text.Regex.TDFA (Regex)
+import Control.Monad
+import FileTree (FileTree, contentTree, prettyTree, readDirectory)
+import Formatting (formatMatch)
+import Match (FileMatch, RegexMatch, matchTree, matches, toRegex)
+import Text.Regex.TDFA (Regex, RegexMaker (makeRegex))
 
 {-
   Structure:
@@ -14,10 +16,11 @@ import Text.Regex.TDFA (Regex)
   - Format list of matched files and matches within each file
 -}
 
-grep :: Regex -> FileTree -> [Match]
+grep :: Regex -> FileTree -> [FileMatch]
 grep = undefined
 
 main :: IO ()
 main = do
-  expr <- getLine
-  readDirectory "../test" >>= putStr . prettyTree
+  let expr = makeRegex "Gonk"
+  matches <- readDirectory "../test" >>= matchTree expr
+  putStr . unlines $ map formatMatch matches
