@@ -6,7 +6,7 @@ import Data.Functor ((<&>))
 import FileTree (FileTree, contentTree, prettyTree, readDirectory)
 import Formatting (formatMatch)
 import Match (FileMatch, RegexMatch, matchTree, matches, toRegex)
-import Text.Regex.TDFA (Regex, RegexMaker (makeRegex, makeRegexM))
+import Text.Regex.PCRE (Regex, RegexMaker (makeRegex, makeRegexM))
 
 {-
   Structure:

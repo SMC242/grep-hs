@@ -29,7 +29,7 @@ executable grep
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends: base ^>=4.16.4.0, regex-tdfa, directory, text, array, cli
+    build-depends: base ^>=4.16.4.0, regex-pcre, directory, text, array, cli, utf8-string, bytestring
     hs-source-dirs:   app
     default-language: Haskell2010
     other-modules: Match, FileTree, Formatting

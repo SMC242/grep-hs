@@ -3,20 +3,18 @@ module FileTree (FileTree (..), prettyTree, readDirectory, flattenWith, flattenP
 -- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html
 
 import Control.Monad (forM, liftM, liftM2, mapM)
+import qualified Data.ByteString.UTF8 as B
 import Data.Maybe (catMaybes)
-import qualified Data.Text as T
-import Data.Text.IO (readFile)
 import System.Directory (doesDirectoryExist, listDirectory)
 import Text.Printf (printf)
-import Prelude hiding (readFile)
 
 data FileTree = File {name :: FilePath} | Directory {name :: String, children :: [FileTree]} deriving (Show)
 
 isDirectory :: FilePath -> IO Bool
 isDirectory = doesDirectoryExist
 
-getFileContents :: FilePath -> IO T.Text
-getFileContents = readFile
+getFileContents :: FilePath -> IO B.ByteString
+getFileContents path = B.fromString <$> readFile path
 
 withIsDir :: FilePath -> IO [(FilePath, Bool)]
 withIsDir path = liftM2 zip files (files >>= traverse (isDirectory . subdir path))
@@ -71,5 +69,5 @@ flattenPaths f = flattenWith f (\p _ -> f p)
 const2 :: a -> b -> c -> a
 const2 = const . const
 
-contentTree :: FileTree -> IO [(FilePath, T.Text)]
+contentTree :: FileTree -> IO [(FilePath, B.ByteString)]
 contentTree = mapM sequence . catMaybes . flattenWith (\p -> Just (p, getFileContents p)) (const2 Nothing)

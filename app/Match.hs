@@ -2,11 +2,11 @@ module Match (matchTree, FileMatch (..), RegexMatch (..), toRegex, matches) wher
 
 import Data.Array (elems, (!))
 import Data.Bifunctor (second)
+import qualified Data.ByteString.UTF8 as B
 import Data.Functor ((<&>))
 import Data.Maybe
-import qualified Data.Text as T
 import FileTree (FileTree, contentTree, flattenWith)
-import Text.Regex.TDFA
+import Text.Regex.PCRE
 
 data FileMatch = FileMatch
   { matchPath :: FilePath,
@@ -14,16 +14,16 @@ data FileMatch = FileMatch
   }
   deriving (Show)
 
-type RegexMatch = (T.Text, MatchOffset, MatchLength)
+type RegexMatch = (B.ByteString, MatchOffset, MatchLength)
 
 -- NOTE: Using options: extended regex, case sensitive, multiline
-toRegex :: String -> Regex
-toRegex = makeRegex
+toRegex :: String -> Maybe Regex
+toRegex = makeRegexM
 
-flattenMatch :: [MatchText T.Text] -> [RegexMatch]
+flattenMatch :: [MatchText B.ByteString] -> [RegexMatch]
 flattenMatch = map ((\(text, (offset, length)) -> (text, offset, length)) . (! 0))
 
-matches :: Regex -> T.Text -> Maybe [RegexMatch]
+matches :: Regex -> B.ByteString -> Maybe [RegexMatch]
 matches expr fileContents = case matchAllText expr fileContents of
   [] -> Nothing
   matches -> Just (flattenMatch matches)
