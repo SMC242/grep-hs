@@ -16,9 +16,11 @@ data FileMatch = FileMatch
 
 type RegexMatch = (B.ByteString, MatchOffset, MatchLength)
 
--- NOTE: Using options: extended regex, case sensitive, multiline
-toRegex :: String -> Maybe Regex
-toRegex = makeRegexM
+-- NOTE: `[CompOption]` must be summed to create a single `CompOption`
+-- Source: guessed from source code
+-- See: `wrapCompile` type signature in https://hackage.haskell.org/package/regex-pcre-0.95.0.0/docs/src/Text.Regex.PCRE.Wrap.html#CompOption
+toRegex :: [CompOption] -> String -> Maybe Regex
+toRegex options = makeRegexOptsM (sum options) defaultExecOpt
 
 flattenMatch :: [MatchText B.ByteString] -> [RegexMatch]
 flattenMatch = map ((\(text, (offset, length)) -> (text, offset, length)) . (! 0))
