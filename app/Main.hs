@@ -1,12 +1,14 @@
 module Main where
 
-import Console.Options
 import Control.Monad
 import Data.Functor ((<&>))
+import qualified Data.Map as M
+import Data.Maybe
 import FileTree (FileTree, contentTree, prettyTree, readDirectory)
 import Formatting (formatMatch)
 import Match (FileMatch, RegexMatch, matchTree, matches, toRegex)
-import Text.Regex.PCRE (Regex, RegexMaker (makeRegex, makeRegexM))
+import Options.Applicative
+import Text.Regex.PCRE (CompOption, Regex, compCaseless, compExtended, compMultiline)
 
 {-
   Structure:
@@ -18,30 +20,54 @@ import Text.Regex.PCRE (Regex, RegexMaker (makeRegex, makeRegexM))
   - Format list of matched files and matches within each file
 -}
 
-grep :: Regex -> FileTree -> [FileMatch]
-grep = undefined
+data Args = Sample
+  { flags :: String,
+    expr :: String,
+    path :: String
+  }
+
+parser :: Parser Args
+parser =
+  Sample
+    <$> strOption
+      ( short 'f'
+          <> long "flags"
+          <> metavar "FLAGS"
+          <> help "Flags for the RegEx engine"
+          <> value ""
+      )
+    <*> argument str (metavar "REGEX")
+    <*> argument str (metavar "PATH")
+
+acceptedFlags :: M.Map Char CompOption
+acceptedFlags =
+  M.fromList
+    [ ('m', compMultiline),
+      ('i', compCaseless),
+      ('e', compExtended)
+    ]
+
+convertFlags :: String -> [CompOption]
+convertFlags = mapMaybe (`M.lookup` acceptedFlags)
 
 main :: IO ()
-main = do
-  inputRegex
+main = grep =<< execParser opts
+  where
+    opts = info (parser <**> helper) (fullDesc <> progDesc "Test" <> header "idk")
+
+noMatchesMsg :: String
+noMatchesMsg = "No matches found :("
+
+grep :: Args -> IO ()
+grep args =
+  parseRegex
+    (expr args)
+    (convertFlags $ flags args)
     ( \expr -> do
-        matches <- readDirectory "../test" >>= matchTree expr
-        putStr . unlines $ map formatMatch matches
+        matches <- readDirectory (path args) >>= matchTree expr
+        let output = if null matches then noMatchesMsg else unlines $ map formatMatch matches
+        putStrLn output
     )
 
-readRegex :: String -> Maybe Regex
-readRegex = makeRegexM
-
-inputRegex :: (Regex -> IO ()) -> IO ()
-inputRegex continue = do
-  expr <- getLine
-  forM_ (readRegex expr) continue
-
--- main' :: IO ()
--- main' = defaultMain $ do
---   programName "grep-hs"
---   programDescription "Clone of grep(1)"
---   flagIgnore <- flag $ FlagShort "i" <> FlagLong "ignore-case"
---   flagMultiline <- flag $ FlagShort "m" <> FlagLong "multiline"
---   rest <- remainingArguments "FILE"
---   action $ \toParam -> do
+parseRegex :: String -> [CompOption] -> (Regex -> IO ()) -> IO ()
+parseRegex expr options = forM_ (toRegex options expr)
