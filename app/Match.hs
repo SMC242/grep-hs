@@ -2,6 +2,7 @@ module Match (matchTree, FileMatch (..), RegexMatch (..), toRegex, matches) wher
 
 import Data.Array (elems, (!))
 import Data.Bifunctor (second)
+import Data.Bits ((.|.))
 import qualified Data.ByteString.UTF8 as B
 import Data.Functor ((<&>))
 import Data.Maybe
@@ -19,8 +20,13 @@ type RegexMatch = (B.ByteString, MatchOffset, MatchLength)
 -- NOTE: `[CompOption]` must be summed to create a single `CompOption`
 -- Source: guessed from source code
 -- See: `wrapCompile` type signature in https://hackage.haskell.org/package/regex-pcre-0.95.0.0/docs/src/Text.Regex.PCRE.Wrap.html#CompOption
+-- Bitwise OR used because
+sumOptions :: [CompOption] -> CompOption
+sumOptions [] = defaultCompOpt
+sumOptions xs = foldr (.|.) 0 xs
+
 toRegex :: [CompOption] -> String -> Maybe Regex
-toRegex options = makeRegexOptsM (sum options) defaultExecOpt
+toRegex options = makeRegexOptsM (sumOptions options) defaultExecOpt
 
 flattenMatch :: [MatchText B.ByteString] -> [RegexMatch]
 flattenMatch = map ((\(text, (offset, length)) -> (text, offset, length)) . (! 0))
