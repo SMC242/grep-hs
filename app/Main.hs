@@ -5,7 +5,7 @@ import Data.Functor ((<&>))
 import qualified Data.Map as M
 import Data.Maybe
 import FileTree (FileTree, contentTree, prettyTree, readDirectory)
-import Formatting (formatMatch)
+import Formatting (Colour (Red), colourise, formatMatch)
 import Match (FileMatch, RegexMatch, matchTree, matches, toRegex)
 import Options.Applicative
 import Text.Regex.PCRE (CompOption, Regex, compCaseless, compExtended, compMultiline)
@@ -56,7 +56,7 @@ main = grep =<< execParser opts
     opts = info (parser <**> helper) (fullDesc <> progDesc "Test" <> header "idk")
 
 noMatchesMsg :: String
-noMatchesMsg = "No matches found :("
+noMatchesMsg = colourise Red "No matches found :("
 
 grep :: Args -> IO ()
 grep args =
