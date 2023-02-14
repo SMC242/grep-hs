@@ -6,7 +6,7 @@ import Data.Bits ((.|.))
 import qualified Data.ByteString.UTF8 as B
 import Data.Functor ((<&>))
 import Data.Maybe
-import FileTree (FileTree, contentTree, flattenWith)
+import FileTree (FileTree, contentTree)
 import Text.Regex.PCRE
 
 data FileMatch = FileMatch

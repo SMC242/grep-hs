@@ -1,9 +1,12 @@
-module FileTree (FileTree (..), prettyTree, readDirectory, flattenWith, flattenPaths, contentTree, getFileContents) where
+{-# LANGUAGE LambdaCase #-}
+
+module FileTree (FileTree (..), prettyTree, readDirectory, foldTree, flattenTree, flattenPaths, contentTree, getFileContents) where
 
 -- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html
 
 import Control.Monad (forM, liftM, liftM2, mapM)
 import qualified Data.ByteString.UTF8 as B
+import Data.List.Split (splitOn)
 import Data.Maybe (catMaybes)
 import System.Directory (doesDirectoryExist, listDirectory)
 import Text.Printf (printf)
@@ -31,16 +34,6 @@ subTree parent child = case child of
   where
     newPath = subdir (name parent) (name child)
 
-prettyTree :: FileTree -> String
-prettyTree t = concat $ prettyTree' 0 [] t
-  where
-    tabs = concat . flip replicate "\t"
-    prettyPath depth = printf "%s| %s\n" (tabs depth)
-    prettyTree' :: Int -> [String] -> FileTree -> [String]
-    prettyTree' depth acc tree = case tree of
-      File name -> prettyPath depth name : acc
-      Directory name children -> prettyPath depth name : concatMap (prettyTree' (depth + 1) acc) children
-
 -- Use readDirectory instead
 walkFiles :: FilePath -> IO [FileTree]
 walkFiles path = withIsDir path >>= mapM toFileTree
@@ -56,18 +49,41 @@ walkFiles path = withIsDir path >>= mapM toFileTree
 readDirectory :: FilePath -> IO FileTree
 readDirectory path = Directory path <$> walkFiles path
 
-flattenWith :: (FilePath -> a) -> (FilePath -> [FileTree] -> a) -> FileTree -> [a]
-flattenWith whenFile whenDir = inner []
+foldTree :: (FileTree -> a -> a) -> a -> FileTree -> [a]
+foldTree f z t = case t of
+  File path -> [x]
+  Directory path children -> x : concatMap (foldTree f x . subTree t) children
   where
-    inner acc tree = case tree of
-      File path -> whenFile path : acc
-      Directory path children -> whenDir path children : concatMap (inner acc . subTree tree) children
+    x = f t z
+
+prettyTree :: FileTree -> String
+prettyTree t =
+  concatMap snd $
+    foldTree
+      ( \t (depth, acc) -> case t of
+          File path -> (depth, prettyPath depth path)
+          Directory path _ -> (depth + 1, prettyPath depth path)
+      )
+      (0, "")
+      t
+  where
+    tabs = concat . flip replicate "\t"
+    prettyPath depth = printf "%s| %s\n" (tabs depth) . last . splitOn "/"  -- Remove parent paths
+
+flattenTree :: (FileTree -> a) -> FileTree -> [a]
+flattenTree f t = case t of
+  File _ -> [f t]
+  Directory _ children -> f t : concatMap (flattenTree f . subTree t) children
 
 flattenPaths :: (FilePath -> a) -> FileTree -> [a]
-flattenPaths f = flattenWith f (\p _ -> f p)
-
-const2 :: a -> b -> c -> a
-const2 = const . const
+flattenPaths f = flattenTree (f . name)
 
 contentTree :: FileTree -> IO [(FilePath, B.ByteString)]
-contentTree = mapM sequence . catMaybes . flattenWith (\p -> Just (p, getFileContents p)) (const2 Nothing)
+contentTree =
+  mapM sequence
+    . catMaybes
+    . flattenTree
+      ( \case
+          File path -> Just (path, getFileContents path)
+          Directory _ _ -> Nothing
+      )
